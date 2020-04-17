@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.UserMapper">
+    <resultMap id="map" type="com.wejoyclass.uc.entity.User">
+
+    </resultMap>
+    <resultMap id="userDto" type="com.wejoyclass.itops.cloud.dto.UserDto">
+
+    </resultMap>
+    <select id="findList" resultMap="map">
+        select tbu.*
+        from t_base_user tbu
+        left join t_base_org_user tbou on tbu.ID = tbou.USER_ID
+        left join t_base_user_role tbur on tbu.ID = tbur.USER_ID
+        left join t_base_role tbr on tbur.ROLE_ID = tbr.ID
+        where 1=1
+        <if test="userName != null and userName != ''">
+            and username = #{userName}
+        </if>
+        <if test="fullName != null and fullName != ''">
+            and FULL_NAME = #{fullName}
+        </if>
+        <if test="userName != null and userName != ''">
+            and username = #{userName}
+        </if>
+        <if test="startTime != null and startTime != '' ">
+            and tbu.CREATE_TIME > #{startTime}
+        </if>
+        <if test="endTime != null and endTime != '' ">
+            and #{endTime} > tbu.CREATE_TIME
+        </if>
+        <if test="orgId != null and orgId != ''">
+            and tbou.ORG_ID = #{orgId}
+        </if>
+    </select>
+
+    <select id="getUserInfo" resultMap="userDto">
+        select tbu.*, tbou.ORG_ID orgId, tbur.ROLE_ID roleId, tbr.NAME roleName
+        from t_base_user tbu
+                 left join t_base_org_user tbou on tbu.ID = tbou.USER_ID
+                 left join t_base_user_role tbur on tbu.ID = tbur.USER_ID
+                 left join t_base_role tbr on tbur.ROLE_ID = tbr.ID
+        where tbu.ID = #{id}
+    </select>
+
+</mapper>

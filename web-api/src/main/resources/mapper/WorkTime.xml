@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.WorkTimeMapper">
+
+    <resultMap id="map" type="com.wejoyclass.itops.cloud.entity.WorkTime">
+       <id property="id" column="id"></id>
+    </resultMap>
+
+    <select id="getNewWorkTimeByOrgId" parameterType="long" resultMap="map">
+        SELECT * FROM t_ops_worktime
+        WHERE ORG_ID = #{orgId}
+        ORDER by START_TIME DESC limit 1
+    </select>
+
+    <select id="getNewWorkTime" parameterType="long" resultMap="map">
+        SELECT * FROM t_ops_worktime
+        WHERE ORG_ID = #{orgId}
+        union all
+        SELECT * FROM t_ops_worktime
+        WHERE ORG_ID = 1
+        limit 1
+    </select>
+
+</mapper>

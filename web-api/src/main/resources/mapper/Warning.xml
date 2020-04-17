@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.WarningMapper">
+
+    <resultMap id="mapWarning" type="com.wejoyclass.itops.cloud.entity.Warning">
+        <id property="id" column="id"></id>
+    </resultMap>
+
+
+    <!--首页-->
+
+    <!--查询某时间段内告警统计表数据-->
+    <select id="getWarningStatisticSInPeriodTime" resultType="com.wejoyclass.itops.cloud.dto.WarningStatisticDto">
+        select WARNING_LEVEL, count(WARNING_INFO) as warningSum
+        from t_ops_warning
+        where  1=1
+        <if test="startTime != null  and startTime !=''">
+            and  CREATE_TIME &gt;= STR_TO_DATE(#{startTime} ,'%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and  CREATE_TIME &lt;= now()
+        </if>
+        and DELETE_FLAG = 0
+        and ORG_ID = #{orgId}
+        GROUP BY WARNING_LEVEL
+    </select>
+
+    <!--统计某时间段内已关闭的告警数量-->
+    <select id="getWarningNumInPeriodTimeByClosed" resultType="com.wejoyclass.itops.cloud.dto.WarningStatusCountDto">
+        select WARNING_STATUS,count(1) as statusSum
+        from t_ops_warning
+        where DELETE_FLAG = 0 and ORG_ID = #{orgId}
+        <if test="startTime != null  and startTime !=''">
+            and  CREATE_TIME &gt;= STR_TO_DATE(#{startTime} ,'%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="endTime != null  and  endTime != ''">
+            and  CREATE_TIME &lt;= now()
+        </if>
+        GROUP BY WARNING_STATUS
+    </select>
+
+    <!--按告警级别统计今天告警数量-->
+    <select id="getWarningStatisticInToday" resultType="com.wejoyclass.itops.cloud.dto.TodayWarningStatisticDto">
+        SELECT ifnull(SUM(WARNING_LEVEL = 1 and CAST(WARNING_TIME AS DATE)=CURDATE()),0) as remindCount,
+               ifnull(SUM(WARNING_LEVEL = 2 and CAST(WARNING_TIME AS DATE)=CURDATE()),0) as preCount,
+               ifnull(SUM(WARNING_LEVEL = 3 and CAST(WARNING_TIME AS DATE)=CURDATE()),0) as heavyCount,
+               ifnull(SUM(CAST(CLOSE_TIME AS DATE) = curdate()),0) as closedCount,
+               ifnull(SUM(CAST(WARNING_TIME AS DATE)=CURDATE()),0) as totalCount
+        from t_ops_warning
+        WHERE DELETE_FLAG = 0 and ORG_ID = #{orgId}
+    </select>
+
+    <!--统计某时间段内告警内容数量最多的TopN-->
+    <select id="getTopNByWarningInfoCountInPeriodTime" resultType="com.wejoyclass.itops.cloud.dto.WarningInfoDto">
+        select WARNING_INFO,count(WARNING_INFO) as warningInfoCount
+        from t_ops_warning
+        where  DELETE_FLAG = 0 and ORG_ID = #{orgId}
+        <if test="startTime != null  and startTime !=''">
+            and  CREATE_TIME &gt;= STR_TO_DATE(#{startTime} ,'%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="endTime != null  and endTime != ''">
+            and  CREATE_TIME &lt;= now()
+        </if>
+        group by WARNING_INFO
+        order by warningInfoCount DESC
+        limit 0,#{topNumber}
+    </select>
+
+
+
+    <!--告警信息-->
+
+    <!--根据id查询告警信息-->
+    <select id="getWarningById" resultType="com.wejoyclass.itops.cloud.entity.Warning">
+        select tow.*, group_concat(tbu.USERNAME) as users from t_ops_warning tow
+        inner join t_ops_warning_notice town on tow.ID = town.WARNING_ID
+        inner join t_base_user tbu on town.WARNING_NOTICE_TO = tbu.ID
+        where tow.ID = #{warningId} and tow.DELETE_FLAG = 0
+    </select>
+
+
+    <!--按条件分页查询告警信息-->
+    <select id="findWarningList" resultMap="mapWarning" parameterType="com.wejoyclass.itops.cloud.dto.WarningQueryParam">
+        select ID, WARNING_CODE, WARNING_INFO, IP_ADDRESS, WARNING_TIME, CLOSE_TIME, WARNING_STATUS,
+        (select name from t_base_dict_item WHERE VALUE = WARNING_LEVEL and GROUP_ID = 2) as warningLevelName
+        from t_ops_warning
+        where DELETE_FLAG = 0 and ORG_ID = #{orgId}
+        <if test="warningLevel != null and warningLevel != ''">
+            and WARNING_LEVEL = #{warningLevel}
+        </if>
+        <if test="warningInfo != null and warningInfo != ''">
+            and WARNING_INFO like concat('%',concat(#{warningInfo},'%'))
+        </if>
+        <if test="ipAddress != null and ipAddress != ''">
+            and IP_ADDRESS like concat('%',concat(#{ipAddress},'%'))
+        </if>
+        <if test="startTime != null  and startTime !=''">
+            and  WARNING_TIME &gt;= STR_TO_DATE(#{startTime} ,'%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="endTime != null  and  endTime != ''">
+            and  WARNING_TIME &lt;= STR_TO_DATE(#{endTime} ,'%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="warningStatus != null and warningStatus != ''">
+            and WARNING_STATUS = #{warningStatus}
+        </if>
+        ORDER BY WARNING_STATUS ASC, WARNING_TIME DESC
+    </select>
+
+</mapper>

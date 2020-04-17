@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.OrgMapper">
+    <resultMap id="map" type="com.wejoyclass.uc.entity.Org">
+
+    </resultMap>
+    <resultMap id="orgDto" type="com.wejoyclass.itops.cloud.dto.OrgDto">
+
+    </resultMap>
+
+    <select id="findList" resultMap="orgDto">
+        select t_base_org.*, LAST_CONNECT_TIME,
+        case
+        when LAST_CONNECT_TIME IS NULL then 0
+        when date_sub(now(), interval 2 day) > LAST_CONNECT_TIME then 0
+        else 1 end as connectStatus
+        from t_base_org
+        left join t_ops_connect toc on t_base_org.ID = toc.ORG_ID
+        <where>
+            t_base_org.id != 1
+            <if test="fullName != null and fullName != '' ">
+                and FULL_NAME like concat('%',#{fullName},'%')
+            </if>
+            <if test="connectStatus == 1">
+                and LAST_CONNECT_TIME > date_sub(now(), interval 2 day)
+            </if>
+            <if test="connectStatus == 0">
+                and (date_sub(now(), interval 2 day) > LAST_CONNECT_TIME or LAST_CONNECT_TIME IS NULL)
+            </if>
+            <if test="contact != null and contact != '' ">
+                and CONTACT like concat('%',#{contact},'%')
+            </if>
+            <if test="startTime != null and startTime != '' ">
+                and CREATE_TIME >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != '' ">
+                and #{endTime} >= CREATE_TIME
+            </if>
+            and t_base_org.delete_flag = 0
+        </where>
+        order by CREATE_TIME Desc
+    </select>
+
+    <select id="getTenant" resultMap="orgDto">
+        select t_base_org.*, LAST_CONNECT_TIME
+        from t_base_org
+                 left join t_ops_connect toc on t_base_org.ID = toc.ORG_ID
+        where t_base_org.ID = #{id}
+    </select>
+
+    <!--插入组织信息-->
+    <insert id="insertOrg"
+            parameterType="com.wejoyclass.itops.cloud.dto.TenantOrgDto"
+            keyProperty="id"
+            useGeneratedKeys="true">
+        insert into t_base_org(FULL_NAME,CONTACT,PHONE,ADDRESS,EMAIL,PID,SORT,STATUS,CREATE_TIME)
+        values (#{fullName},#{contact},#{phone},#{address},#{email},#{pid},#{sort},#{status},#{date})
+    </insert>
+
+    <!--插入角色信息-->
+    <insert id="insertRole"
+            parameterType="com.wejoyclass.itops.cloud.dto.TenantOrgDto"
+            keyProperty="rid"
+            useGeneratedKeys="true">
+        insert into t_base_role(NAME,CODE,ENABLED,ORG_ID,SORT)
+        values (#{rname},#{rcode},#{renable},#{orgId},#{rsort})
+    </insert>
+
+    <!--根据资源code查询资源id-->
+    <select id="getResourceIdByResourceCode" resultType="java.lang.Long">
+        select id
+        from t_base_resource
+        where code = #{resourceCode}
+    </select>
+
+    <!--将资源id和角色id插入角色资源表-->
+    <insert id="insertRoleResource" parameterType="java.lang.Long">
+        insert into t_base_role_resource(ROLE_ID, RESOURCE_ID)
+        VALUES(#{roleId}, #{resourceId})
+    </insert>
+
+    <select id="getByOrgName" resultMap="map">
+        select * from t_base_org where FULL_NAME = #{orgFullName}
+    </select>
+</mapper>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.MonitorLicenseMapper">
+    <resultMap id="map" type="com.wejoyclass.itops.cloud.entity.MonitorLicense">
+
+    </resultMap>
+    <resultMap id="dto" type="com.wejoyclass.itops.cloud.dto.MonitorLicenseDto">
+
+    </resultMap>
+    <select id="findList" resultMap="dto">
+        select *
+        from t_ops_monitor_license
+        where 1 = 1
+        <if test="startStartTime != null and startStartTime != ''">
+            and START_DATE >= #{startStartTime}
+        </if>
+        <if test="startEndTime != null and startEndTime != ''">
+            and #{startEndTime} >= START_DATE
+        </if>
+        <if test="endEndTime != null and endEndTime != ''">
+            and #{endEndTime} >= END_DATE
+        </if>
+        <if test="endStartTime != null and endStartTime != ''">
+            and END_DATE >= #{endStartTime}
+        </if>
+        <if test="status != null and status != ''">
+            <if test="status == false">
+                and now() > EXPIRE_TIME
+            </if>
+            <if test="status == true">
+                and EXPIRE_TIME >= now()
+            </if>
+        </if>
+        <if test="orgId != null and orgId != ''">
+            and ORG_ID = #{orgId}
+        </if>
+    </select>
+
+    <select id="findEntityList" resultMap="map">
+        select * from t_ops_monitor_license
+        where ORG_ID = #{orgId}
+    </select>
+
+    <select id="getBefore" resultMap="map">
+        select *
+        from t_ops_monitor_license
+        where ORG_ID = #{orgId}
+        order by CREATE_TIME desc
+        limit 1
+    </select>
+
+    <select id="findCodeByOrgId" resultType="String">
+        select LICENSE_CODE
+        from t_ops_monitor_license
+        where ORG_ID = #{orgId}
+          and EXPIRE_TIME >= now()
+        order by EXPIRE_TIME
+        limit 1
+    </select>
+
+    <select id="findEntityByCode" resultMap="map">
+        select *
+        from t_ops_monitor_license
+        where LICENSE_CODE = #{licenseCode}
+    </select>
+
+    <select id="findYesterdayCode" resultMap="map">
+        select * from t_ops_monitor_license
+        where DATE_FORMAT(CREATE_TIME,'%Y-%m-%d') = DATE_SUB(CURRENT_DATE,interval 1 day)
+              and ORG_ID = #{orgId}
+    </select>
+
+</mapper>

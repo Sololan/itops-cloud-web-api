@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.NoticeWayMapper">
+    <resultMap id="map" type="com.wejoyclass.itops.cloud.entity.NoticeWay">
+        <id property="id" column="id"/>
+    </resultMap>
+
+    <select id="getNoticeWayByNoticeRuleId" parameterType="long" resultMap="map">
+        SELECT
+          *
+        FROM t_ops_notice_way
+        WHERE DELETE_FLAG = 0
+        AND NOTICE_RULE_ID = #{noticeRuleId}
+    </select>
+
+    <delete id="deleteNoticeWayByRuleId" parameterType="long">
+        DELETE
+        FROM t_ops_notice_way
+        WHERE NOTICE_RULE_ID = #{noticeRuleId}
+    </delete>
+
+</mapper>

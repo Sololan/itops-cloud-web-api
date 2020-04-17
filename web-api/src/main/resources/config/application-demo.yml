@@ -1,0 +1,37 @@
+server:
+  port: 7011
+  servlet:
+    context-path: /
+  tomcat:
+    max-http-post-size: -1
+
+# eureka server
+eureka-defaultZone: http://192.170.1.209:8761/eureka
+
+# spring boot admin
+spring-boot-admin-url: http://192.170.1.209:7001
+
+spring:
+  datasource:
+    url: jdbc:mysql://192.170.1.209:3306/itops
+    username: root
+    password: MySQL#209
+    driver-class-name: com.mysql.jdbc.Driver
+
+  # redis
+  redis:
+    host: 192.170.1.209
+    port: 6379
+    password:
+
+logback:
+  # 配置mapper包路径，控制sql打印必须要设置
+  mapperDir: ${mybatis.mapperPackage}
+  # 设置是否打印mybatis sql, 默认DEBUG，表示打印；设置为ERROR,则不打印
+  sqlLevel: DEBUG
+  # 设置root logger level, 默认ERROR，可设置为DEBUG, INFO, ERROR等
+  rootLevel: INFO
+  # 设置日志文件名称，默认server
+  appName: server
+  # 日志打印路径, 默认为当前路径下的logs目录
+  logDir: logs

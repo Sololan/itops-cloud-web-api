@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.NoticeRuleMapper">
+    <resultMap id="map" type="com.wejoyclass.itops.cloud.entity.NoticeRule">
+        <id property="id" column="id"/>
+        <collection property="noticeWayList" select="com.wejoyclass.itops.cloud.mapper.NoticeWayMapper.getNoticeWayByNoticeRuleId" column="id"></collection>
+        <collection property="noticeUserList" select="com.wejoyclass.itops.cloud.mapper.NoticeUserMapper.getNoticeUserByNoticeRuleId" column="id"></collection>
+    </resultMap>
+
+    <select id="findNoticeRuleList" parameterType="map" resultType="com.wejoyclass.itops.cloud.dto.NoticeRuleQueryDto">
+      select
+           r.ID,
+           r.ORG_ID,
+           r.WARNING_LEVEL,
+          (select i.name from t_base_dict_item i
+            join t_base_dict_group g on g.ID = i.GROUP_ID WHERE g.GROUP_KEY = 'WARNING_LEVEL' and i.ID = r.WARNING_LEVEL) warningLevelNAME,
+           r.WARNING_STAGE,
+          (select i.name from t_base_dict_item i
+              join t_base_dict_group g on g.ID = i.GROUP_ID WHERE g.GROUP_KEY = 'WARNING_STAGE' and i.ID = r.WARNING_STAGE) warningsTageNAME,
+           r.NOTICE_TIMING,
+           r.POSTPONEMENT_STRATEGY,
+          (select i.name from t_base_dict_item i
+              join t_base_dict_group g on g.ID = i.GROUP_ID WHERE g.GROUP_KEY = 'POSTPONEMENT_STRATEGY' and i.ID = r.POSTPONEMENT_STRATEGY) postPoneMentStrategyNAME,
+           (select GROUP_CONCAT(NOTICE_METHOD) from t_ops_notice_way WHERE NOTICE_RULE_ID = r.ID) noticeMethod,
+           (select GROUP_CONCAT(b.FULL_NAME) from t_base_user b inner join t_ops_notice_user o on o.NOTICE_USER = b.ID where o.NOTICE_RULE_ID = r.ID) noticeUser
+        from t_ops_notice_rule r
+               Left join t_ops_notice_user u on u.NOTICE_RULE_ID = r.ID
+               Left join t_base_user bu on bu.ID = u.NOTICE_USER
+        where r.DELETE_FLAG = 0
+        <if test="orgId != null and orgId !=''">
+            and r.ORG_ID = #{orgId}
+        </if>
+        <if test="warningLevel != null and warningLevel !=''">
+            and r.WARNING_LEVEL = #{warningLevel}
+        </if>
+        <if test="warningStage != null and warningStage !=''">
+            and r.WARNING_STAGE = #{warningStage}
+        </if>
+        <if test="noticeTiming != null and noticeTiming !=''">
+            and r.NOTICE_TIMING = #{noticeTiming}
+        </if>
+        <if test="noticeWay != null and noticeWay !=''">
+            and exists(select w.id from t_ops_notice_way w where w.NOTICE_METHOD = #{noticeWay} and w.NOTICE_RULE_ID = r.ID)
+        </if>
+        <if test="noticeUser != null and noticeUser !=''">
+            and bu.FULL_NAME like CONCAT('%',#{noticeUser},'%')
+        </if>
+        group by r.ID
+        order by r.WARNING_LEVEL, r.WARNING_STAGE, r.CREATE_TIME desc
+    </select>
+
+    <select id="getNoticeRuleById" parameterType="long" resultMap="map">
+        SELECT * FROM t_ops_notice_rule
+        WHERE DELETE_FLAG = 0 AND  ID = #{id}
+    </select>
+
+    <select id="getMessageUsedByWarningLevelOrgId" resultType="com.wejoyclass.itops.cloud.dto.MessageUsedDto">
+        select rule.ID,
+               rule.POSTPONEMENT_STRATEGY,
+               rule.NOTICE_TIMING,
+               rule.WARNING_LEVEL,
+               rule.WARNING_STAGE,
+               tonu.NOTICE_USER,
+               tbu.FULL_NAME,
+               tbu.PHONE,
+               tbu.EMAIL,
+               tonw.NOTICE_METHOD,
+               towb.OPEN_ID,
+               (select ITEM_KEY from t_base_dict_item where id = rule.WARNING_STAGE) stageItemKey,
+               (select ITEM_KEY from t_base_dict_item where id = rule.WARNING_LEVEL) levelItemKey,
+               (select name from t_base_dict_item where id = rule.WARNING_LEVEL) levelName,
+               (select ITEM_KEY from t_base_dict_item where id = rule.POSTPONEMENT_STRATEGY) strategyItemKey,
+               (select ITEM_KEY from t_base_dict_item where id = tonw.NOTICE_METHOD) methodItemKey
+        from t_ops_notice_rule rule
+                 inner join t_ops_notice_user tonu
+                           on rule.ID = tonu.NOTICE_RULE_ID
+                 inner join t_base_user tbu
+                           on tonu.NOTICE_USER = tbu.ID
+                 inner join t_ops_notice_way tonw
+                           on tonw.NOTICE_RULE_ID = rule.ID
+                 left join t_ops_wx_bind towb
+                           on towb.USER_ID = tbu.ID
+                 left join t_base_dict_item tbdi
+                           on tbdi.id = rule.WARNING_LEVEL
+        where tbdi.ITEM_KEY =  #{warningLevel}
+          and rule.ORG_ID = #{orgId}
+        order by rule.ID, methodItemKey
+    </select>
+
+
+</mapper>

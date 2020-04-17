@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wejoyclass.itops.cloud.mapper.WechatMapper">
+    <resultMap id="map" type="com.wejoyclass.itops.cloud.dto.UserIdOrdIdDto">
+    </resultMap>
+
+    <resultMap id="User" type="com.wejoyclass.uc.entity.User">
+    </resultMap>
+
+    <insert id="bind">
+        insert into t_ops_wx_bind
+        (ORG_ID,USER_ID,OPEN_ID)
+        values
+        (#{orgId},#{userId},#{openId})
+    </insert>
+
+    <delete id="unbind">
+        delete from t_ops_wx_bind
+        where USER_ID = #{id}
+    </delete>
+
+    <select id="isBind" resultType="Integer">
+        select count(*)
+        from t_ops_wx_bind
+        where USER_ID = #{id}
+    </select>
+
+    <select id="getUserIdOrgId" resultMap="map">
+        select ou.USER_ID,ou.ORG_ID
+        from t_base_user u
+                 left join t_base_org_user ou on u.ID = ou.USER_ID
+                 left join t_base_org o on o.ID = ou.ORG_ID
+        where u.USERNAME = #{username}
+          and u.DELETE_FLAG = 0
+          and o.DELETE_FLAG = 0
+    </select>
+
+    <select id="getUnboundUsers" resultMap="User">
+        SELECT u.ID, u.FULL_NAME
+        FROM
+        <foreach item="userId" collection="userIds" open="(" separator="union" close=")">
+            SELECT #{userId} AS userId
+        </foreach>
+        AS ids INNER JOIN t_base_user AS u
+        ON ids.userId = u.ID
+        WHERE ids.userId NOT IN
+        (
+        SELECT USER_ID AS id
+        FROM t_ops_wx_bind
+        WHERE ORG_ID = #{orgId}
+        AND USER_ID IN
+        <foreach item="userId" index="index" collection="userIds" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        )
+    </select>
+</mapper>
